@@ -127,7 +127,7 @@ function AddressBookModule:AddSubSubmenuButtons(list, level)
     local info = {}
     info.text = name
     info.func = AddressBookModule.SetSendMailName
-    info.arg1 = strmatch(name, "(%a*)%s") or name
+    info.arg1 = strmatch(name, "([^%s]+)")
     UIDropDownMenu_AddButton(info, level)
   end
 end

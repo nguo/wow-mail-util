@@ -1,6 +1,7 @@
 # MailUtil
 
 Built off of pieces from Postal https://github.com/wow-vanilla-addons/Postal
+
 WOTLK Addon for improved mail experience.
 
 Features include:

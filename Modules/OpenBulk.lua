@@ -168,7 +168,7 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
   end
 
   -- @xg debug statement
-  --MailUtil:Print("DEBUG-open "..mailIndex.." "..msgSubject)
+  MailUtil:Print("DEBUG-open "..mailIndex.." "..(msgSubject or ""))
 
   -- Print money info before fetching
   local _, _, _, goldCount = MailUtil:CountItemsAndMoney()
@@ -222,7 +222,7 @@ function OpenBulkModule:OpenMailAttachments(mailIndex)
 
   local msgSubject, msgMoney, _, _, msgItem = select(4, GetInboxHeaderInfo(mailIndex))
 
-  --MailUtil:Print("DEBUG-attachment "..mailIndex.." "..msgSubject.." "..(msgItem or ""))
+  MailUtil:Print("DEBUG-attachment "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
 
   if msgMoney == 0 and not msgItem then
     self:NextMail(mailIndex)
@@ -233,7 +233,7 @@ function OpenBulkModule:OpenMailAttachments(mailIndex)
   if msgMoney > 0 then
     totalGoldCollected = totalGoldCollected + msgMoney
     TakeInboxMoney(mailIndex)
-    --MailUtil:Print("DEBUG-money "..mailIndex.." "..msgSubject.." "..msgItem)
+    MailUtil:Print("DEBUG-money "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
     wait = true
     C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
     return
@@ -248,7 +248,7 @@ function OpenBulkModule:OpenMailAttachments(mailIndex)
   end
 
   AutoLootMailItem(mailIndex)
-  --MailUtil:Print("DEBUG-loot "..mailIndex.." "..msgSubject.." "..msgItem)
+  MailUtil:Print("DEBUG-loot "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
   wait = true
   C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
 end

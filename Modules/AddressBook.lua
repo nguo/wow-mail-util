@@ -6,7 +6,7 @@ local dropdownMenu
 local dropdownButton
 
 -- constants
-local MU_ITEMS_PER_SUBMENU = 2
+local MU_ITEMS_PER_SUBMENU = 25
 local MU_DROPDOWN_GUILD_VAL = "guild"
 local MU_DROPDOWN_FRIEND_VAL = "friend"
 local MU_DROPDOWN_GUILD_PART_VAL = "gpart"
@@ -115,7 +115,7 @@ function AddressBookModule.InitMenu(self, level)
       local part = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, MU_DROPDOWN_FRIEND_PART_VAL.."(%d+)"))
       AddressBookModule:AddSubSubmenuButtons(AddressBookModule:GetFriendsList(part), level)
     elseif strfind(UIDROPDOWNMENU_MENU_VALUE, MU_DROPDOWN_GUILD_PART_VAL) then
-      local part = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, MU_DROPDOWN_FRIEND_PART_VAL.."(%d+)"))
+      local part = tonumber(strmatch(UIDROPDOWNMENU_MENU_VALUE, MU_DROPDOWN_GUILD_PART_VAL.."(%d+)"))
       AddressBookModule:AddSubSubmenuButtons(AddressBookModule:GetGuildiesList(part), level)
     end
   end

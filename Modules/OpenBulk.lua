@@ -11,7 +11,6 @@ local MU_PROCESS_TYPE_AH_OTHER = 3 -- expired, cancelled, outbid
 local MU_PROCESS_DELAY_SECS = 0.3
 
 -- vars
-local mailIndex
 local numUnshownItems
 local lastNumAttach, lastNumGold
 local totalGoldCollected
@@ -96,11 +95,11 @@ end
 function OpenBulkModule:MAIL_SHOW()
   self:RegisterEvent("MAIL_CLOSED", "Reset")
   self:RegisterEvent("PLAYER_LEAVING_WORLD", "Reset")
+  CheckInbox()
 end
 
 function OpenBulkModule:Reset(event)
   currrentProcessType = nil
-  mailIndex = 0
   numUnshownItems = 0
   lastNumAttach, lastNumGold = 0
   totalGoldCollected = 0
@@ -114,22 +113,22 @@ function OpenBulkModule:Reset(event)
   end
 end
 
-function OpenBulkModule:OpenAll(processType, isRecursive)
+function OpenBulkModule:OpenAll(processType)
   self:Reset()
   currrentProcessType = processType
-  mailIndex, numUnshownItems = GetInboxNumItems()
-  numUnshownItems = numUnshownItems - mailIndex
-  if mailIndex == 0 then
+  local numShown, totalItems = GetInboxNumItems()
+  numUnshownItems = totalItems - numShown
+  if numShown == 0 then
     return
   end
 
   -- TODO: react to error message
   -- self:RegisterEvent("UI_ERROR_MESSAGE")
 
-  self:ProcessNext()
+  self:ProcessMailAtIndex(numShown)
 end
 
-function OpenBulkModule:ProcessNext()
+function OpenBulkModule:ProcessMailAtIndex(mailIndex)
   if mailIndex <= 0 then
     -- Reached the end of opening all selected mail
     local numItems, totalItems = GetInboxNumItems()
@@ -155,21 +154,21 @@ function OpenBulkModule:ProcessNext()
   -- Skip mail if it contains a CoD or if its from a GM
   if (msgCOD and msgCOD > 0) or (isGM) then
     skipFlag = true
-    return self:NextMail()
+    return self:NextMail(mailIndex)
   end
 
   -- Filter by mail type
   local mailType = OpenBulkModule:GetMailType(msgSubject)
   if currrentProcessType == MU_PROCESS_TYPE_AH_OTHER and mailType ~= "AHExpired" and mailType ~= "AHCancelled" and mailType ~= "AHOutbid" then
-    return self:NextMail()
+    return self:NextMail(mailIndex)
   elseif currrentProcessType == MU_PROCESS_TYPE_AH_SOLD and mailType ~= "AHSold" then
-    return self:NextMail()
+    return self:NextMail(mailIndex)
   elseif currrentProcessType == MU_PROCESS_TYPE_AH_BOUGHT and mailType ~= "AHWon" then
-    return self:NextMail()
+    return self:NextMail(mailIndex)
   end
 
   -- @xg debug statement
-  -- MailUtil:Print("Opening..."..mailIndex.." "..msgSubject)
+  --MailUtil:Print("DEBUG-open "..mailIndex.." "..msgSubject)
 
   -- Print money info before fetching
   local _, _, _, goldCount = MailUtil:CountItemsAndMoney()
@@ -184,13 +183,12 @@ function OpenBulkModule:ProcessNext()
   end
 
   -- open all attachments from mail
-  OpenBulkModule:OpenMailAttachments()
+  OpenBulkModule:OpenMailAttachments(mailIndex)
 end
 
-function OpenBulkModule:NextMail()
+function OpenBulkModule:NextMail(currentMailIndex)
   wait = false
-  mailIndex = mailIndex - 1
-  self:ProcessNext()
+  self:ProcessMailAtIndex(currentMailIndex - 1)
 end
 
 function OpenBulkModule:NumFreeSlots()
@@ -204,7 +202,7 @@ function OpenBulkModule:NumFreeSlots()
   return free
 end
 
-function OpenBulkModule:OpenMailAttachments()
+function OpenBulkModule:OpenMailAttachments(mailIndex)
   if mailIndex <= 0 then
     return
   end
@@ -213,7 +211,7 @@ function OpenBulkModule:OpenMailAttachments()
     if lastNumGold ~= goldCount or lastNumAttach ~= attachCount then
       wait = false
     else
-      C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments() end)
+      C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
       return
     end
   end
@@ -222,10 +220,12 @@ function OpenBulkModule:OpenMailAttachments()
   lastNumAttach = attachCount
 
 
-  local msgMoney, _, _, msgItem = select(5, GetInboxHeaderInfo(mailIndex))
+  local msgSubject, msgMoney, _, _, msgItem = select(4, GetInboxHeaderInfo(mailIndex))
+
+  --MailUtil:Print("DEBUG-attachment "..mailIndex.." "..msgSubject.." "..(msgItem or ""))
 
   if msgMoney == 0 and not msgItem then
-    self:NextMail()
+    self:NextMail(mailIndex)
     return
   end
 
@@ -233,8 +233,9 @@ function OpenBulkModule:OpenMailAttachments()
   if msgMoney > 0 then
     totalGoldCollected = totalGoldCollected + msgMoney
     TakeInboxMoney(mailIndex)
+    --MailUtil:Print("DEBUG-money "..mailIndex.." "..msgSubject.." "..msgItem)
     wait = true
-    C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments() end)
+    C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
     return
   end
 
@@ -242,11 +243,12 @@ function OpenBulkModule:OpenMailAttachments()
   if invFull or self:NumFreeSlots() == 0 then
     invFull = true
     MailUtil:Print("Inventory full, skipping attachments")
-    self:NextMail()
+    self:NextMail(mailIndex)
     return
   end
 
   AutoLootMailItem(mailIndex)
+  --MailUtil:Print("DEBUG-loot "..mailIndex.." "..msgSubject.." "..msgItem)
   wait = true
-  C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments() end)
+  C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
 end

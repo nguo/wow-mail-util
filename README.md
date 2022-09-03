@@ -1,4 +1,4 @@
-# Mail Util
+# MailUtil
 
  WOTLK Addon for improved mail experience.
 

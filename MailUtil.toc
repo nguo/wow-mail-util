@@ -1,0 +1,13 @@
+## Interface: 30400
+
+## Author: xgooy
+## Title: Mail Util
+## Notes: Mail Utility Features
+## Version: 1.0.0
+
+libs.xml
+
+MailUtil.lua
+Modules/AddressBook.lua
+Modules/OpenBulk.lua
+

@@ -11,19 +11,17 @@ local MU_PROCESS_TYPE_AH_OTHER = 3 -- expired, cancelled, outbid
 local MU_PROCESS_DELAY_SECS = 0.3
 
 -- vars
-local numUnshownItems
-local lastNumAttach, lastNumGold
-local totalGoldCollected
-local wait
-local skipFlag
-local currrentProcessType
-local invFull
+local numUnshownItems = 0
+local totalGoldCollected = 0
+local skipFlag = false
+local currrentProcessType = nil
+local invFull = false
 
 -- UI elements
-local openAllButton
-local openAHSoldButton
-local openAHOtherButton
-local openAHBoughtButton
+local uiOpenAllButton
+local uiOpenAHSoldButton
+local uiOpenAHOtherButton
+local uiOpenAHBoughtButton
 
 -- Return the type of mail a message subject is
 local SubjectPatterns = {
@@ -43,48 +41,48 @@ function OpenBulkModule:GetMailType(msgSubject)
 end
 
 function OpenBulkModule:OnEnable()
-  if not openAllButton then
-    openAllButton = CreateFrame("Button", "BIOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
-    openAllButton:SetWidth(34)
-    openAllButton:SetHeight(25)
-    openAllButton:SetPoint("CENTER", InboxFrame, "TOP", -98, -399)
-    openAllButton:SetText("All")
-    openAllButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_ALL, false) end)
-    openAllButton:SetFrameLevel(openAllButton:GetFrameLevel() + 1)
-    MailUtil:AddTooltipText(openAllButton, "All", "Opens all mail")
+  if not uiOpenAllButton then
+    uiOpenAllButton = CreateFrame("Button", "MUOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
+    uiOpenAllButton:SetWidth(34)
+    uiOpenAllButton:SetHeight(25)
+    uiOpenAllButton:SetPoint("CENTER", InboxFrame, "TOP", -98, -399)
+    uiOpenAllButton:SetText("All")
+    uiOpenAllButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_ALL, false) end)
+    uiOpenAllButton:SetFrameLevel(uiOpenAllButton:GetFrameLevel() + 1)
+    MailUtil:AddTooltipText(uiOpenAllButton, "All", "Opens all mail")
   end
 
-  if not openAHSoldButton then
-    openAHSoldButton = CreateFrame("Button", "BIOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
-    openAHSoldButton:SetWidth(40)
-    openAHSoldButton:SetHeight(25)
-    openAHSoldButton:SetPoint("CENTER", InboxFrame, "TOP", -56, -399)
-    openAHSoldButton:SetText("Sold")
-    openAHSoldButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_SOLD, false) end)
-    openAHSoldButton:SetFrameLevel(openAHSoldButton:GetFrameLevel() + 1)
-    MailUtil:AddTooltipText(openAHSoldButton, "AH Sold", "Opens sold auction items")
+  if not uiOpenAHSoldButton then
+    uiOpenAHSoldButton = CreateFrame("Button", "MUOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
+    uiOpenAHSoldButton:SetWidth(40)
+    uiOpenAHSoldButton:SetHeight(25)
+    uiOpenAHSoldButton:SetPoint("CENTER", InboxFrame, "TOP", -56, -399)
+    uiOpenAHSoldButton:SetText("Sold")
+    uiOpenAHSoldButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_SOLD, false) end)
+    uiOpenAHSoldButton:SetFrameLevel(uiOpenAHSoldButton:GetFrameLevel() + 1)
+    MailUtil:AddTooltipText(uiOpenAHSoldButton, "AH Sold", "Opens sold auction items")
   end
 
-  if not openAHBoughtButton then
-    openAHBoughtButton = CreateFrame("Button", "BIOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
-    openAHBoughtButton:SetWidth(42)
-    openAHBoughtButton:SetHeight(25)
-    openAHBoughtButton:SetPoint("CENTER", InboxFrame, "TOP", -10, -399)
-    openAHBoughtButton:SetText("Won")
-    openAHBoughtButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_BOUGHT, false) end)
-    openAHBoughtButton:SetFrameLevel(openAHBoughtButton:GetFrameLevel() + 1)
-    MailUtil:AddTooltipText(openAHBoughtButton, "AH Won", "Opens won auction items")
+  if not uiOpenAHBoughtButton then
+    uiOpenAHBoughtButton = CreateFrame("Button", "MUOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
+    uiOpenAHBoughtButton:SetWidth(42)
+    uiOpenAHBoughtButton:SetHeight(25)
+    uiOpenAHBoughtButton:SetPoint("CENTER", InboxFrame, "TOP", -10, -399)
+    uiOpenAHBoughtButton:SetText("Won")
+    uiOpenAHBoughtButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_BOUGHT, false) end)
+    uiOpenAHBoughtButton:SetFrameLevel(uiOpenAHBoughtButton:GetFrameLevel() + 1)
+    MailUtil:AddTooltipText(uiOpenAHBoughtButton, "AH Won", "Opens won auction items")
   end
 
-  if not openAHOtherButton then
-    openAHOtherButton = CreateFrame("Button", "BIOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
-    openAHOtherButton:SetWidth(48)
-    openAHOtherButton:SetHeight(25)
-    openAHOtherButton:SetPoint("CENTER", InboxFrame, "TOP", 38, -399)
-    openAHOtherButton:SetText("Other")
-    openAHOtherButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_OTHER, false) end)
-    openAHOtherButton:SetFrameLevel(openAHOtherButton:GetFrameLevel() + 1)
-    MailUtil:AddTooltipText(openAHOtherButton, "AH Other", "Opens misc auction items, including expired, outbid, and cancelled")
+  if not uiOpenAHOtherButton then
+    uiOpenAHOtherButton = CreateFrame("Button", "MUOpenAllButton", InboxFrame, "UIPanelButtonTemplate")
+    uiOpenAHOtherButton:SetWidth(48)
+    uiOpenAHOtherButton:SetHeight(25)
+    uiOpenAHOtherButton:SetPoint("CENTER", InboxFrame, "TOP", 38, -399)
+    uiOpenAHOtherButton:SetText("Other")
+    uiOpenAHOtherButton:SetScript("OnClick", function() OpenBulkModule:OpenAll(MU_PROCESS_TYPE_AH_OTHER, false) end)
+    uiOpenAHOtherButton:SetFrameLevel(uiOpenAHOtherButton:GetFrameLevel() + 1)
+    MailUtil:AddTooltipText(uiOpenAHOtherButton, "AH Other", "Opens misc auction items, including expired, outbid, and cancelled")
   end
 
   self:RegisterEvent("MAIL_SHOW")
@@ -101,9 +99,7 @@ end
 function OpenBulkModule:Reset(event)
   currrentProcessType = nil
   numUnshownItems = 0
-  lastNumAttach, lastNumGold = 0
   totalGoldCollected = 0
-  wait = false
   skipFlag = false
   invFull = false
 
@@ -135,7 +131,7 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
     if numUnshownItems ~= totalItems - numItems then
       -- We will Open All again if the number of unshown items is different
       MailUtil:Print("Mailbox items changed, opening more mail...")
-      return self:OpenAll(currentProcessType, true)
+      return self:OpenAll(currentProcessType)
     end
 
     -- TODO: handle case when we need to refresh the inbox? Or let the user manually refresh?
@@ -150,7 +146,7 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
     return self:Reset()
   end
 
-  local sender, msgSubject, msgMoney, msgCOD, _, msgItem, _, _, msgText, _, isGM = select(3, GetInboxHeaderInfo(mailIndex))
+  local sender, msgSubject, msgMoneyAmt, msgCOD, _, msgAttachmtAmt, _, _, msgText, _, isGM = select(3, GetInboxHeaderInfo(mailIndex))
   -- Skip mail if it contains a CoD or if its from a GM
   if (msgCOD and msgCOD > 0) or (isGM) then
     skipFlag = true
@@ -167,13 +163,9 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
     return self:NextMail(mailIndex)
   end
 
-  -- @xg debug statement
-  MailUtil:Print("DEBUG-open "..mailIndex.." "..(msgSubject or ""))
-
   -- Print money info before fetching
-  local _, _, _, goldCount = MailUtil:CountItemsAndMoney()
-  if msgMoney > 0 then
-    local moneyString = mailType == "AHSold" and " ["..MailUtil:GSC(msgMoney).."] " or ""
+  if msgMoneyAmt > 0 then
+    local moneyString = mailType == "AHSold" and " ["..MailUtil:GSC(msgMoneyAmt).."] " or ""
     local playerNameString = ""
     if (mailType == "AHSold" or mailType == "AHWon") then
       playerName = select(3,GetInboxInvoiceInfo(mailIndex))
@@ -182,12 +174,25 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
     end
   end
 
-  -- open all attachments from mail
-  OpenBulkModule:OpenMailAttachments(mailIndex)
+  -- construct mail data and open attachments/money for mail
+  local finalAttachmtIndex = ATTACHMENTS_MAX_RECEIVE
+  while not GetInboxItemLink(mailIndex, finalAttachmtIndex) and finalAttachmtIndex > 0 do
+    finalAttachmtIndex = finalAttachmtIndex - 1
+  end
+  local mailState = {
+    index = mailIndex,
+    finalAttachmtIndex = finalAttachmtIndex,
+    origAttachmtAmt = msgAttachmtAmt,
+    origMoneyAmt = msgMoneyAmt,
+    wasLastAttachmt = false,
+    isTaking = false,
+    prevInboxMoneyAmt = 0,
+    prevInboxAttachmtAmt = 0
+  }
+  OpenBulkModule:OpenMailAttachments(mailState)
 end
 
 function OpenBulkModule:NextMail(currentMailIndex)
-  wait = false
   self:ProcessMailAtIndex(currentMailIndex - 1)
 end
 
@@ -202,53 +207,70 @@ function OpenBulkModule:NumFreeSlots()
   return free
 end
 
-function OpenBulkModule:OpenMailAttachments(mailIndex)
+function OpenBulkModule:OpenMailAttachments(mailState)
+  local mailIndex = mailState.index
   if mailIndex <= 0 then
     return
   end
-  local _, _, _, goldCount, attachCount = MailUtil:CountItemsAndMoney()
-  if wait then
-    if lastNumGold ~= goldCount or lastNumAttach ~= attachCount then
-      wait = false
+  -- get total count of items and money from mailbox.
+  -- we can't rely on getting the single mail from the mail index because if the mail was completely open before this callback,
+  -- it's possible for a previously-skipped mail to take the place of that mail index and we won't be checking against the same mail anymore.
+  -- this is why we store information about the last attachment
+  local _, _, _, inboxMoneyAmt, inboxAttachmtAmt = MailUtil:CountItemsAndMoney()
+  if mailState.isTaking then
+    if mailState.prevInboxMoneyAmt ~= inboxMoneyAmt or mailState.prevInboxAttachmtAmt ~= inboxAttachmtAmt then
+      -- either money amount has changed - meaning gold was successfully taken,
+      -- or attachment amount has changed - meaning previous attachment was taken.
+      -- if the previous attachment was the last one, or the mail never had attachments, go to next mail.
+      if mailState.origAttachmtAmt == 0 or mailState.wasLastAttach then
+        self:NextMail(mailIndex)
+        return
+      end
+      -- otherwise, keep going.
+      mailState.isTaking = false
     else
-      C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
+      -- stil waiting for something to change - keep waiting.
+      C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailState) end)
       return
     end
   end
 
-  lastNumGold = goldCount
-  lastNumAttach = attachCount
+  mailState.prevInboxMoneyAmt = inboxMoneyAmt
+  mailState.prevInboxAttachmtAmt = inboxAttachmtAmt
 
+  local msgSubject, msgMoneyAmt, _, _, msgAttachmtAmt = select(4, GetInboxHeaderInfo(mailIndex))
 
-  local msgSubject, msgMoney, _, _, msgItem = select(4, GetInboxHeaderInfo(mailIndex))
-
-  MailUtil:Print("DEBUG-attachment "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
-
-  if msgMoney == 0 and not msgItem then
+  if msgMoneyAmt == 0 and not msgAttachmtAmt then
+    -- nothing else in mail - go to next mail
     self:NextMail(mailIndex)
     return
   end
 
-  -- -- try to get money first
-  if msgMoney > 0 then
-    totalGoldCollected = totalGoldCollected + msgMoney
+  -- take money first
+  if msgMoneyAmt > 0 then
+    totalGoldCollected = totalGoldCollected + msgMoneyAmt
     TakeInboxMoney(mailIndex)
-    MailUtil:Print("DEBUG-money "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
-    wait = true
-    C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
+    mailState.isTaking = true
+    C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailState) end)
     return
   end
 
-  -- -- now try to get attachments
+  -- now take attachments if we have space
   if invFull or self:NumFreeSlots() == 0 then
     invFull = true
     MailUtil:Print("Inventory full, skipping attachments")
     self:NextMail(mailIndex)
     return
   end
-
-  AutoLootMailItem(mailIndex)
-  MailUtil:Print("DEBUG-loot "..mailIndex.." "..(msgSubject or "").." "..(msgItem or ""))
-  wait = true
-  C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailIndex) end)
+  -- start taking attachment from the front
+  local attachmtIndex = 1
+  while not GetInboxItemLink(mailIndex, attachmtIndex) and attachmtIndex <= mailState.finalAttachmtIndex do
+    attachmtIndex = attachmtIndex + 1
+  end
+  if attachmtIndex == mailState.finalAttachmtIndex then
+    mailState.wasLastAttach = true
+  end
+  TakeInboxItem(mailIndex, attachmtIndex)
+  mailState.isTaking = true
+  C_Timer.After(MU_PROCESS_DELAY_SECS, function() self:OpenMailAttachments(mailState) end)
 end

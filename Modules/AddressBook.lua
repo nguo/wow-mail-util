@@ -1,9 +1,8 @@
 local AddressBookModule = MailUtil:NewModule("MUAddressBookModule", "AceEvent-3.0", "AceHook-3.0")
 
 -- UI elements
-local addressBookButton
-local dropdownMenu
-local dropdownButton
+local uiAddressBookButton
+local uiDropdownMenu
 
 -- constants
 local MU_ITEMS_PER_SUBMENU = 25
@@ -17,7 +16,7 @@ local guildiesList = nil
 local friendsList = nil
 
 ------------- Helpers -------------
-function AddressBookModule.SetSendMailName(dropdownbutton, arg1, arg2, checked)
+function AddressBookModule.SetSendMailName(frame, arg1, arg2, checked)
   SendMailNameEditBox:SetText(arg1)
   if SendMailNameEditBox:HasFocus() then SendMailSubjectEditBox:SetFocus() end
   CloseDropDownMenus()
@@ -168,35 +167,35 @@ function AddressBookModule:AddSubmenuButtons(list, value, level)
 end
 
 ------------- Dropdown Menu Frame -------------
-local dropdownMenu = CreateFrame("Frame", "MUAddressDropdown")
-dropdownMenu.displayMode = "MENU"
-dropdownMenu.levelAdjust = 0
-dropdownMenu.UncheckHack = function(button)
+local uiDropdownMenu = CreateFrame("Frame", "MUAddressDropdown")
+uiDropdownMenu.displayMode = "MENU"
+uiDropdownMenu.levelAdjust = 0
+uiDropdownMenu.UncheckHack = function(button)
   _G[button:GetName().."Check"]:Hide()
   _G[button:GetName().."UnCheck"]:Hide()
 end
-dropdownMenu.HideMenu = function()
-  if UIDROPDOWNMENU_OPEN_MENU == dropdownMenu then
+uiDropdownMenu.HideMenu = function()
+  if UIDROPDOWNMENU_OPEN_MENU == uiDropdownMenu then
     CloseDropDownMenus()
   end
 end
-dropdownMenu.initialize = AddressBookModule.InitMenu
+uiDropdownMenu.initialize = AddressBookModule.InitMenu
 
 ------------- General -------------
 function AddressBookModule:OnEnable()
-  if not addressBookButton then
-    addressBookButton = CreateFrame("Button", "MUAddressBookButton", SendMailFrame)
-    addressBookButton:SetWidth(25)
-    addressBookButton:SetHeight(25)
-    addressBookButton:SetPoint("LEFT", SendMailNameEditBox, "RIGHT", -2, 2)
-    addressBookButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
-    addressBookButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Round")
-    addressBookButton:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
-    addressBookButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
-    addressBookButton:SetScript("OnClick", function(self, button, down)
-      ToggleDropDownMenu(1, nil, dropdownMenu, self:GetName(), 0, 0)
+  if not uiAddressBookButton then
+    uiAddressBookButton = CreateFrame("Button", "MUAddressBookButton", SendMailFrame)
+    uiAddressBookButton:SetWidth(25)
+    uiAddressBookButton:SetHeight(25)
+    uiAddressBookButton:SetPoint("LEFT", SendMailNameEditBox, "RIGHT", -2, 2)
+    uiAddressBookButton:SetNormalTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Up")
+    uiAddressBookButton:SetHighlightTexture("Interface\\Buttons\\ButtonHilight-Round")
+    uiAddressBookButton:SetDisabledTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Disabled")
+    uiAddressBookButton:SetPushedTexture("Interface\\ChatFrame\\UI-ChatIcon-ScrollDown-Down")
+    uiAddressBookButton:SetScript("OnClick", function(self, button, down)
+      ToggleDropDownMenu(1, nil, uiDropdownMenu, self:GetName(), 0, 0)
     end)
-    addressBookButton:SetScript("OnHide", dropdownMenu.HideMenu)
+    uiAddressBookButton:SetScript("OnHide", uiDropdownMenu.HideMenu)
   end
   self:RawHook("SendMailFrame_Reset", true)
   self:RegisterEvent("MAIL_SHOW")

@@ -14,8 +14,9 @@ local MU_PROCESS_DELAY_SECS = 0.3
 local numUnshownItems = 0
 local totalGoldCollected = 0
 local skipFlag = false
-local currrentProcessType = nil
+local currentProcessType = nil
 local invFull = false
+local firstMailDaysLeft
 
 -- UI elements
 local uiOpenAllButton
@@ -97,7 +98,7 @@ function OpenBulkModule:MAIL_SHOW()
 end
 
 function OpenBulkModule:Reset(event)
-  currrentProcessType = nil
+  currentProcessType = nil
   numUnshownItems = 0
   totalGoldCollected = 0
   skipFlag = false
@@ -111,12 +112,14 @@ end
 
 function OpenBulkModule:OpenAll(processType)
   self:Reset()
-  currrentProcessType = processType
+  currentProcessType = processType
   local numShown, totalItems = GetInboxNumItems()
   numUnshownItems = totalItems - numShown
   if numShown == 0 then
     return
   end
+
+  firstMailDaysLeft = select(7, GetInboxHeaderInfo(1))
 
   -- TODO: react to error message
   -- self:RegisterEvent("UI_ERROR_MESSAGE")
@@ -125,6 +128,14 @@ function OpenBulkModule:OpenAll(processType)
 end
 
 function OpenBulkModule:ProcessMailAtIndex(mailIndex)
+  local currentFirstMailDaysLeft = select(7, GetInboxHeaderInfo(1))
+  if currentFirstMailDaysLeft ~= 0 and currentFirstMailDaysLeft ~= firstMailDaysLeft then
+    -- First mail's daysLeft changed, indicating we have a
+    -- fresh MAIL_INBOX_UPDATE that has new data from CheckInbox()
+    -- so we reopen from the last mail
+    MailUtil:Print("Current first has changed, open all again")
+    return self:OpenAll(currentProcessType)
+  end
   if mailIndex <= 0 then
     -- Reached the end of opening all selected mail
     local numItems, totalItems = GetInboxNumItems()
@@ -132,6 +143,8 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
       -- We will Open All again if the number of unshown items is different
       MailUtil:Print("Mailbox items changed, opening more mail...")
       return self:OpenAll(currentProcessType)
+    elseif totalItems > numItems and numItems < MAX_MAIL_SHOWN then
+      MailUtil:Print("We should refresh mail...")
     end
 
     -- TODO: handle case when we need to refresh the inbox? Or let the user manually refresh?
@@ -147,6 +160,8 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
   end
 
   local sender, msgSubject, msgMoneyAmt, msgCOD, _, msgAttachmtAmt, _, _, msgText, _, isGM = select(3, GetInboxHeaderInfo(mailIndex))
+  msgMoneyAmt = msgMoneyAmt or 0
+  msgAttachmtAmt = msgAttachmtAmt or 0
   -- Skip mail if it contains a CoD or if its from a GM
   if (msgCOD and msgCOD > 0) or (isGM) then
     skipFlag = true
@@ -155,11 +170,11 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
 
   -- Filter by mail type
   local mailType = OpenBulkModule:GetMailType(msgSubject)
-  if currrentProcessType == MU_PROCESS_TYPE_AH_OTHER and mailType ~= "AHExpired" and mailType ~= "AHCancelled" and mailType ~= "AHOutbid" then
+  if currentProcessType == MU_PROCESS_TYPE_AH_OTHER and mailType ~= "AHExpired" and mailType ~= "AHCancelled" and mailType ~= "AHOutbid" then
     return self:NextMail(mailIndex)
-  elseif currrentProcessType == MU_PROCESS_TYPE_AH_SOLD and mailType ~= "AHSold" then
+  elseif currentProcessType == MU_PROCESS_TYPE_AH_SOLD and mailType ~= "AHSold" then
     return self:NextMail(mailIndex)
-  elseif currrentProcessType == MU_PROCESS_TYPE_AH_BOUGHT and mailType ~= "AHWon" then
+  elseif currentProcessType == MU_PROCESS_TYPE_AH_BOUGHT and mailType ~= "AHWon" then
     return self:NextMail(mailIndex)
   end
 
@@ -182,8 +197,8 @@ function OpenBulkModule:ProcessMailAtIndex(mailIndex)
   local mailState = {
     index = mailIndex,
     finalAttachmtIndex = finalAttachmtIndex,
-    origAttachmtAmt = msgAttachmtAmt,
-    origMoneyAmt = msgMoneyAmt,
+    origAttachmtAmt = msgAttachmtAmt or 0,
+    origMoneyAmt = msgMoneyAmt or 0,
     wasLastAttachmt = false,
     isTaking = false,
     prevInboxMoneyAmt = 0,
@@ -217,6 +232,8 @@ function OpenBulkModule:OpenMailAttachments(mailState)
   -- it's possible for a previously-skipped mail to take the place of that mail index and we won't be checking against the same mail anymore.
   -- this is why we store information about the last attachment
   local _, _, _, inboxMoneyAmt, inboxAttachmtAmt = MailUtil:CountItemsAndMoney()
+  inboxMoneyAmt = inboxMoneyAmt or 0
+  inboxAttachmtAmt = inboxAttachmtAmt or 0
   if mailState.isTaking then
     if mailState.prevInboxMoneyAmt ~= inboxMoneyAmt or mailState.prevInboxAttachmtAmt ~= inboxAttachmtAmt then
       -- either money amount has changed - meaning gold was successfully taken,
@@ -239,8 +256,10 @@ function OpenBulkModule:OpenMailAttachments(mailState)
   mailState.prevInboxAttachmtAmt = inboxAttachmtAmt
 
   local msgSubject, msgMoneyAmt, _, _, msgAttachmtAmt = select(4, GetInboxHeaderInfo(mailIndex))
-
-  if msgMoneyAmt == 0 and not msgAttachmtAmt then
+  msgMoneyAmt = msgMoneyAmt or 0
+  msgAttachmtAmt = msgAttachmtAmt or 0
+  
+  if msgMoneyAmt == 0 and msgAttachmtAmt == 0 then
     -- nothing else in mail - go to next mail
     self:NextMail(mailIndex)
     return
@@ -258,7 +277,6 @@ function OpenBulkModule:OpenMailAttachments(mailState)
   -- now take attachments if we have space
   if invFull or self:NumFreeSlots() == 0 then
     invFull = true
-    MailUtil:Print("Inventory full, skipping attachments")
     self:NextMail(mailIndex)
     return
   end

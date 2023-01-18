@@ -214,7 +214,7 @@ end
 function OpenBulkModule:NumFreeSlots()
   local free = 0
   for bag = 0,NUM_BAG_SLOTS do
-    local bagFree,bagFam = GetContainerNumFreeSlots(bag)
+    local bagFree,bagFam = C_Container.GetContainerNumFreeSlots(bag)
     if bagFam == 0 then
       free = free + bagFree
     end
